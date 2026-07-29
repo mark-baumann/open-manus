@@ -201,11 +201,17 @@ class ComplianceGuard:
         )
 
     def _action_matches_rule(self, action: str, rule: PolicyRule) -> bool:
-        """Prüft, ob eine Aktion einer Regel entspricht (Keyword-Overlap)."""
-        action_words = set(action.lower().split())
-        rule_words = set(rule.description.lower().split())
-        overlap = action_words & rule_words
-        return len(overlap) / max(len(rule_words), 1) > 0.3
+        """Prüft, ob eine Aktion einer Regel entspricht (Keyword-Overlap + Substring)."""
+        action_lower = action.lower()
+        rule_lower = rule.description.lower()
+        # Tokenisiere Action (auch snake_case und camelCase splitten)
+        action_tokens = set()
+        for word in action_lower.replace("_", " ").split():
+            action_tokens.add(word)
+        rule_words = set(rule_lower.split())
+        overlap = action_tokens & rule_words
+        # Mindestens 1 Wort-Overlap ODER Action ist Substring der Regel
+        return len(overlap) >= 1 or action_lower in rule_lower
 
     def _action_satisfies_rule(self, action: str, result: Any, rule: PolicyRule) -> bool:
         """Prüft, ob eine Aktion eine MUST_DO-Regel erfüllt."""
@@ -237,7 +243,7 @@ class PolicyDriftDetector:
     def record_action(self, action: str):
         """Zeichnet eine Aktion auf."""
         self.action_history.append(action)
-        if len(self.action_history) > self.window_size * 2:
+        if len(self.action_history) > self.window_size:
             self.action_history = self.action_history[-self.window_size:]
 
     def detect_drift(self) -> float:
@@ -258,12 +264,17 @@ class PolicyDriftDetector:
         for action in recent:
             for rule in rules:
                 if rule.rule_type == PolicyRuleType.MUST_NOT_DO:
-                    action_words = set(action.lower().split())
-                    rule_words = set(rule.description.lower().split())
-                    if len(action_words & rule_words) / max(len(rule_words), 1) > 0.3:
+                    action_lower = action.lower()
+                    rule_lower = rule.description.lower()
+                    action_tokens = set()
+                    for word in action_lower.replace("_", " ").split():
+                        action_tokens.add(word)
+                    rule_words = set(rule_lower.split())
+                    if len(action_tokens & rule_words) >= 1:
                         violations += 1
         
-        return min(violations / (len(recent) * max(len(rules), 1)), 1.0)
+        # Drift = Anteil der Aktionen mit mindestens einem Verstoß
+        return min(violations / len(recent), 1.0)
 
     def should_reinject_policy(self) -> bool:
         """
