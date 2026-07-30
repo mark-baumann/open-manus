@@ -2,7 +2,7 @@ import json
 from abc import ABC, abstractmethod
 from typing import Any, Dict, Optional, Union
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, ConfigDict, Field
 
 from app.utils.logger import logger
 
@@ -38,16 +38,15 @@ from app.utils.logger import logger
 class ToolResult(BaseModel):
     """Represents the result of a tool execution."""
 
+    model_config = ConfigDict(arbitrary_types_allowed=True)
+
     output: Any = Field(default=None)
     error: Optional[str] = Field(default=None)
     base64_image: Optional[str] = Field(default=None)
     system: Optional[str] = Field(default=None)
 
-    class Config:
-        arbitrary_types_allowed = True
-
     def __bool__(self):
-        return any(getattr(self, field) for field in self.__fields__)
+        return any(getattr(self, field) for field in type(self).model_fields)
 
     def __add__(self, other: "ToolResult"):
         def combine_fields(
@@ -71,8 +70,7 @@ class ToolResult(BaseModel):
 
     def replace(self, **kwargs):
         """Returns a new ToolResult with the given fields replaced."""
-        # return self.copy(update=kwargs)
-        return type(self)(**{**self.dict(), **kwargs})
+        return type(self)(**{**self.model_dump(), **kwargs})
 
 
 class BaseTool(ABC, BaseModel):
@@ -91,14 +89,11 @@ class BaseTool(ABC, BaseModel):
         _schemas (Dict[str, List[ToolSchema]]): Registered method schemas
     """
 
+    model_config = ConfigDict(arbitrary_types_allowed=True)
+
     name: str
     description: str
     parameters: Optional[dict] = None
-    # _schemas: Dict[str, List[ToolSchema]] = {}
-
-    class Config:
-        arbitrary_types_allowed = True
-        underscore_attrs_are_private = False
 
     # def __init__(self, **data):
     #     """Initialize tool with model validation and schema registration."""

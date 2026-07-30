@@ -87,7 +87,7 @@ class Message(BaseModel):
         if self.content is not None:
             message["content"] = self.content
         if self.tool_calls is not None:
-            message["tool_calls"] = [tool_call.dict() for tool_call in self.tool_calls]
+            message["tool_calls"] = [tool_call.model_dump() for tool_call in self.tool_calls]
         if self.name is not None:
             message["name"] = self.name
         if self.tool_call_id is not None:
