@@ -46,7 +46,7 @@ class ToolResult(BaseModel):
     system: Optional[str] = Field(default=None)
 
     def __bool__(self):
-        return any(getattr(self, field) for field in self.model_fields)
+        return any(getattr(self, field) for field in type(self).model_fields)
 
     def __add__(self, other: "ToolResult"):
         def combine_fields(
