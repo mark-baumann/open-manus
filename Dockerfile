@@ -15,7 +15,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 # Python-Abhängigkeiten
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
-# Streamlit wird nach allen anderen Deps installiert (verhindert Versions-Konflikte)
+# Streamlit separat installieren (vermeidet Versions-Konflikte mit gepinnten Deps)
 RUN pip install --no-cache-dir "streamlit>=1.28.0"
 
 # App-Code
