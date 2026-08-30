@@ -23,6 +23,9 @@ COPY . .
 
 # Port (pro App anpassen: 8501-8519)
 ARG PORT=8516
+# ARG allein reicht nicht: CMD/HEALTHCHECK laufen zur Container-Laufzeit,
+# nicht beim Build, daher als ENV re-exportieren.
+ENV PORT=$PORT
 EXPOSE $PORT
 
 # Healthcheck
