@@ -28,8 +28,8 @@ ARG PORT=8516
 ENV PORT=$PORT
 EXPOSE $PORT
 
-# Healthcheck
-HEALTHCHECK --interval=30s --timeout=5s --retries=3 \
+# Healthcheck — start-period gibt Streamlit Zeit zum Starten, bevor Checks zählen
+HEALTHCHECK --interval=30s --timeout=5s --start-period=30s --retries=3 \
   CMD python -c "import urllib.request;urllib.request.urlopen('http://localhost:${PORT}/_stcore/health')"
 
 # Streamlit
