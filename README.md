@@ -49,7 +49,7 @@ docker --version  # Docker muss installiert sein
 ### Streamlit-App
 
 ```bash
-streamlit run app.py
+streamlit run app/streamlit_app.py
 ```
 
 Die App bietet:
@@ -92,7 +92,6 @@ pytest tests/ -v
 
 ```
 open-manus/
-├── app.py                      # Streamlit-App
 ├── main.py                     # Haupt-CLI
 ├── run_flow.py                 # Flow-Ausführung
 ├── run_mcp.py                  # MCP-Integration
@@ -100,6 +99,7 @@ open-manus/
 ├── sandbox_main.py             # Sandbox-Entrypoint
 ├── setup.py                    # Package-Setup
 ├── app/
+│   ├── streamlit_app.py        # Streamlit-App
 │   ├── config.py               # Konfiguration
 │   ├── schema.py               # Daten-Schema
 │   ├── handbook_compliance.py  # Regel-Validierung
