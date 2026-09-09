@@ -6,7 +6,7 @@ from daytona import Daytona, DaytonaConfig, Sandbox, SandboxState
 from pydantic import Field
 
 from app.config import config
-from app.daytona.sandbox import create_sandbox, start_supervisord_session
+from app.daytona_sandbox.sandbox import create_sandbox, start_supervisord_session
 from app.tool.base import BaseTool
 from app.utils.files_utils import clean_path
 from app.utils.logger import logger
