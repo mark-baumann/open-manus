@@ -5,8 +5,8 @@ from pydantic import Field, model_validator
 from app.agent.browser import BrowserContextHelper
 from app.agent.toolcall import ToolCallAgent
 from app.config import config
-from app.daytona.sandbox import create_sandbox, delete_sandbox
-from app.daytona.tool_base import SandboxToolsBase
+from app.daytona_sandbox.sandbox import create_sandbox, delete_sandbox
+from app.daytona_sandbox.tool_base import SandboxToolsBase
 from app.logger import logger
 from app.prompt.manus import NEXT_STEP_PROMPT, SYSTEM_PROMPT
 from app.tool import Terminate, ToolCollection

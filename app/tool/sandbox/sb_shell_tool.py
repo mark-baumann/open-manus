@@ -3,7 +3,7 @@ import time
 from typing import Any, Dict, Optional, TypeVar
 from uuid import uuid4
 
-from app.daytona.tool_base import Sandbox, SandboxToolsBase
+from app.daytona_sandbox.tool_base import Sandbox, SandboxToolsBase
 from app.tool.base import ToolResult
 from app.utils.logger import logger
 
@@ -117,7 +117,7 @@ class SandboxShellTool(SandboxToolsBase):
         session_id = await self._ensure_session("raw_commands")
 
         # Execute command in session
-        from app.daytona.sandbox import SessionExecuteRequest
+        from app.daytona_sandbox.sandbox import SessionExecuteRequest
 
         req = SessionExecuteRequest(
             command=command, run_async=False, cwd=self.workspace_path

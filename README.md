@@ -114,7 +114,7 @@ open-manus/
 │   │   ├── sandbox/            # Sandbox-Tools
 │   │   └── chart_visualization/
 │   ├── sandbox/                # Docker-Sandbox
-│   ├── daytona/                # Daytona-Integration
+│   ├── daytona_sandbox/        # Daytona-Integration
 │   └── utils/                  # Logger, File-Utils
 ├── protocol/
 │   └── a2a/                    # Agent-to-Agent-Protokoll

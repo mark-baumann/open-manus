@@ -8,7 +8,7 @@ from typing import Dict, Literal, Optional
 import aiohttp
 from pydantic import Field
 
-from app.daytona.tool_base import Sandbox, SandboxToolsBase
+from app.daytona_sandbox.tool_base import Sandbox, SandboxToolsBase
 from app.tool.base import ToolResult
 
 
