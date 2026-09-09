@@ -1,6 +1,5 @@
 """Unit-Tests für app/utils/files_utils.py"""
 
-import pytest
 from app.utils.files_utils import clean_path, should_exclude_file
 
 
@@ -67,7 +66,9 @@ class TestCleanPath:
 
     def test_custom_workspace_path(self):
         """Benutzerdefinierter Workspace-Pfad wird verwendet."""
-        assert clean_path("/home/user/project/file.py", "/home/user") == "project/file.py"
+        assert (
+            clean_path("/home/user/project/file.py", "/home/user") == "project/file.py"
+        )
 
     def test_empty_path(self):
         """Leerer Pfad bleibt leer."""

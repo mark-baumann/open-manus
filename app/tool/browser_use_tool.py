@@ -141,33 +141,18 @@ class BrowserUseTool(BaseTool, Generic[Context]):
     async def _ensure_browser_initialized(self) -> BrowserContext:
         """Ensure browser and context are initialized."""
         if self.browser is None:
-            browser_config_kwargs = {"headless": False, "disable_security": True}
+            from app.browser_engines import browser_use_launch_kwargs
 
-            if config.browser_config:
+            browser_config_kwargs = browser_use_launch_kwargs(config.browser_config)
+            if "proxy" in browser_config_kwargs:
                 from browser_use.browser.browser import ProxySettings
 
-                # handle proxy settings.
-                if config.browser_config.proxy and config.browser_config.proxy.server:
-                    browser_config_kwargs["proxy"] = ProxySettings(
-                        server=config.browser_config.proxy.server,
-                        username=config.browser_config.proxy.username,
-                        password=config.browser_config.proxy.password,
-                    )
-
-                browser_attrs = [
-                    "headless",
-                    "disable_security",
-                    "extra_chromium_args",
-                    "chrome_instance_path",
-                    "wss_url",
-                    "cdp_url",
-                ]
-
-                for attr in browser_attrs:
-                    value = getattr(config.browser_config, attr, None)
-                    if value is not None:
-                        if not isinstance(value, list) or value:
-                            browser_config_kwargs[attr] = value
+                proxy = browser_config_kwargs["proxy"]
+                browser_config_kwargs["proxy"] = ProxySettings(
+                    server=getattr(proxy, "server", None),
+                    username=getattr(proxy, "username", None),
+                    password=getattr(proxy, "password", None),
+                )
 
             self.browser = BrowserUseBrowser(BrowserConfig(**browser_config_kwargs))
 

@@ -1,15 +1,8 @@
 """Unit-Tests für app/schema.py"""
 
 import pytest
-from app.schema import (
-    AgentState,
-    Function,
-    Memory,
-    Message,
-    Role,
-    ToolCall,
-    ToolChoice,
-)
+
+from app.schema import AgentState, Function, Memory, Message, Role, ToolCall, ToolChoice
 
 
 class TestRole:

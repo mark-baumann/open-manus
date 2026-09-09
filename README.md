@@ -24,6 +24,7 @@ Open Manus ist ein modulares, erweiterbares Agent-Framework für die Entwicklung
 - 🎨 **Chart-Visualisierung** — Integrierte Diagramm-Tools
 - 📋 **Handbook-Compliance** — Regelbasierte Agent-Validierung
 - 🖥️ **Streamlit-App** — Interaktive Agent-Konfiguration und Task-Ausführung
+- 🌐 **Browser-Engines** — Playwright Chromium (Standard), Google Chrome, Microsoft Edge; Headless im Server/Docker
 - 🧪 **Test-Suite** — pytest-Tests für Tools, Sandbox und Schema
 
 ## 🚀 Installation

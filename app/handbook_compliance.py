@@ -13,24 +13,26 @@ Dieses Modul implementiert:
 4. Policy Drift Detection
 """
 
-from typing import List, Dict, Any, Optional, Tuple
-from dataclasses import dataclass, field
-from enum import Enum
-import re
 import hashlib
+import re
+from dataclasses import dataclass
+from enum import Enum
+from typing import Any, Dict, List, Optional, Tuple
 
 
 class PolicyRuleType(Enum):
     """Typ einer Policy-Regel."""
-    MUST_DO = "must_do"       # Erforderliche Aktion
+
+    MUST_DO = "must_do"  # Erforderliche Aktion
     MUST_NOT_DO = "must_not_do"  # Verbotene Aktion
     CONDITIONAL = "conditional"  # Bedingte Regel
-    THRESHOLD = "threshold"      # Schwellwert-basierte Regel
+    THRESHOLD = "threshold"  # Schwellwert-basierte Regel
 
 
 @dataclass
 class PolicyRule:
     """Eine einzelne Policy-Regel aus dem Handbook."""
+
     id: str
     rule_type: PolicyRuleType
     description: str
@@ -53,6 +55,7 @@ class PolicyRule:
 @dataclass
 class ComplianceCheck:
     """Ergebnis eines Compliance-Checks."""
+
     rule_id: str
     passed: bool
     reason: str
@@ -63,7 +66,7 @@ class ComplianceCheck:
 class HandbookPolicy:
     """
     Repräsentiert ein vollständiges Handbook/Policy-Dokument.
-    
+
     Features:
     - Chunking langer Dokumente in thematische Sektionen
     - Regel-Extraktion mit Prioritäten
@@ -81,40 +84,47 @@ class HandbookPolicy:
         """Parst das Handbook in Sektionen und extrahiert Regeln."""
         # In Produktion: LLM-basierte Extraktion
         # Hier: regelbasierte Heuristik für Demo
-        
+
         # Sektionen an ##-Überschriften erkennen
-        sections = re.split(r'\n(?=## )', self.content)
+        sections = re.split(r"\n(?=## )", self.content)
         for section in sections:
-            header_match = re.match(r'## (.+)', section)
+            header_match = re.match(r"## (.+)", section)
             if header_match:
                 section_name = header_match.group(1).strip().lower()
                 self.sections[section_name] = section
-        
+
         # Regeln aus MUST/MUST NOT/SHOULD-Patterns extrahieren
         rule_patterns = [
-            (r'(?:MUST|MUSS)\s+(?:NOT|NICHT)\s+(.+)', PolicyRuleType.MUST_NOT_DO),
-            (r'(?:MUST|MUSS)\s+(.+)', PolicyRuleType.MUST_DO),
-            (r'(?:IF|WENN)\s+(.+?)(?:,\s*THEN|,\s*DANN)\s+(.+)', PolicyRuleType.CONDITIONAL),
+            (r"(?:MUST|MUSS)\s+(?:NOT|NICHT)\s+(.+)", PolicyRuleType.MUST_NOT_DO),
+            (r"(?:MUST|MUSS)\s+(.+)", PolicyRuleType.MUST_DO),
+            (
+                r"(?:IF|WENN)\s+(.+?)(?:,\s*THEN|,\s*DANN)\s+(.+)",
+                PolicyRuleType.CONDITIONAL,
+            ),
         ]
-        
+
         for pattern, rule_type in rule_patterns:
             for match in re.finditer(pattern, self.content, re.IGNORECASE):
-                desc = match.group(1).strip().rstrip('.')
+                desc = match.group(1).strip().rstrip(".")
                 rule_id = hashlib.md5(desc.encode()).hexdigest()[:8]
-                self.rules.append(PolicyRule(
-                    id=rule_id,
-                    rule_type=rule_type,
-                    description=desc,
-                ))
+                self.rules.append(
+                    PolicyRule(
+                        id=rule_id,
+                        rule_type=rule_type,
+                        description=desc,
+                    )
+                )
 
-    def get_relevant_rules(self, action_context: str, domain: Optional[str] = None) -> List[PolicyRule]:
+    def get_relevant_rules(
+        self, action_context: str, domain: Optional[str] = None
+    ) -> List[PolicyRule]:
         """
         Gibt die für eine geplante Aktion relevanten Regeln zurück.
         Verwendet Keyword-Matching zwischen Action-Context und Regel-Text.
         """
         relevant = []
         action_words = set(action_context.lower().split())
-        
+
         for rule in self.rules:
             if domain and rule.domain != domain:
                 continue
@@ -122,7 +132,7 @@ class HandbookPolicy:
             overlap = action_words & rule_words
             if len(overlap) > 0:
                 relevant.append(rule)
-        
+
         # Sortiere nach Priorität (kritische zuerst)
         relevant.sort(key=lambda r: r.priority, reverse=True)
         return relevant
@@ -135,7 +145,7 @@ class HandbookPolicy:
         rules = self.get_relevant_rules(action_context)[:max_rules]
         if not rules:
             return ""
-        
+
         snippets = [r.to_prompt_snippet() for r in rules]
         return "📋 AKTIVE RICHTLINIEN:\n" + "\n".join(snippets)
 
@@ -143,7 +153,7 @@ class HandbookPolicy:
 class ComplianceGuard:
     """
     Pre-Action und Post-Action Compliance-Checks.
-    
+
     Wird VOR jeder Tool-Ausführung und NACH jeder Aktion aufgerufen,
     um Policy-Verstöße zu verhindern und zu erkennen.
     """
@@ -159,7 +169,7 @@ class ComplianceGuard:
         """
         action_context = f"{action} {' '.join(str(v) for v in params.values())}"
         rules = self.policy.get_relevant_rules(action_context)
-        
+
         for rule in rules:
             if rule.rule_type == PolicyRuleType.MUST_NOT_DO:
                 # Prüfe, ob die Aktion einer verbotenen Regel ähnelt
@@ -172,7 +182,7 @@ class ComplianceGuard:
                     )
                     self.violation_log.append(check)
                     return False, check.reason
-        
+
         return True, "OK"
 
     def post_action_check(self, action: str, result: Any) -> ComplianceCheck:
@@ -181,7 +191,7 @@ class ComplianceGuard:
         """
         # Prüfe MUST_DO-Regeln: Wurden erforderliche Aktionen ausgeführt?
         rules = self.policy.get_relevant_rules(action)
-        
+
         for rule in rules:
             if rule.rule_type == PolicyRuleType.MUST_DO:
                 if not self._action_satisfies_rule(action, result, rule):
@@ -193,7 +203,7 @@ class ComplianceGuard:
                     )
                     self.violation_log.append(check)
                     return check
-        
+
         return ComplianceCheck(
             rule_id="all",
             passed=True,
@@ -213,7 +223,9 @@ class ComplianceGuard:
         # Mindestens 1 Wort-Overlap ODER Action ist Substring der Regel
         return len(overlap) >= 1 or action_lower in rule_lower
 
-    def _action_satisfies_rule(self, action: str, result: Any, rule: PolicyRule) -> bool:
+    def _action_satisfies_rule(
+        self, action: str, result: Any, rule: PolicyRule
+    ) -> bool:
         """Prüft, ob eine Aktion eine MUST_DO-Regel erfüllt."""
         # Vereinfacht: Prüft, ob die Aktion überhaupt stattfand
         return result is not None
@@ -222,7 +234,7 @@ class ComplianceGuard:
         """Gibt eine Zusammenfassung aller Verstöße."""
         if not self.violation_log:
             return "✅ Keine Policy-Verstöße."
-        
+
         violations = [c for c in self.violation_log if not c.passed]
         return f"⚠️ {len(violations)} Policy-Verstoß(e):\n" + "\n".join(
             f"  - {v.reason}" for v in violations
@@ -244,7 +256,7 @@ class PolicyDriftDetector:
         """Zeichnet eine Aktion auf."""
         self.action_history.append(action)
         if len(self.action_history) > self.window_size:
-            self.action_history = self.action_history[-self.window_size:]
+            self.action_history = self.action_history[-self.window_size :]
 
     def detect_drift(self) -> float:
         """
@@ -253,13 +265,13 @@ class PolicyDriftDetector:
         """
         if len(self.action_history) < self.window_size:
             return 0.0
-        
-        recent = self.action_history[-self.window_size:]
+
+        recent = self.action_history[-self.window_size :]
         rules = self.policy.rules
-        
+
         if not rules:
             return 0.0
-        
+
         violations = 0
         for action in recent:
             for rule in rules:
@@ -272,7 +284,7 @@ class PolicyDriftDetector:
                     rule_words = set(rule_lower.split())
                     if len(action_tokens & rule_words) >= 1:
                         violations += 1
-        
+
         # Drift = Anteil der Aktionen mit mindestens einem Verstoß
         return min(violations / len(recent), 1.0)
 

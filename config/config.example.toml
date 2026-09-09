@@ -57,7 +57,10 @@ temperature = 0.0                          # Controls randomness for vision mode
 
 # Optional configuration for specific browser configuration
 # [browser]
-# Whether to run browser in headless mode (default: false)
+# Browser engine: "chromium" (Playwright, default), "chrome", or "msedge".
+# Firefox and WebKit are not supported by browser-use 0.1.x.
+#engine = "chromium"
+# Whether to run browser in headless mode (default: false; auto-true without DISPLAY)
 #headless = false
 # Disable browser security features (default: true)
 #disable_security = true

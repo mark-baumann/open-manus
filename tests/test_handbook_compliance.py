@@ -1,14 +1,12 @@
 """
 Tests für Handbook Compliance Modul.
 """
-import pytest
 from app.handbook_compliance import (
-    HandbookPolicy,
-    ComplianceGuard,
-    PolicyDriftDetector,
-    PolicyRule,
-    PolicyRuleType,
     ComplianceCheck,
+    ComplianceGuard,
+    HandbookPolicy,
+    PolicyDriftDetector,
+    PolicyRuleType,
 )
 
 
@@ -35,7 +33,9 @@ class TestHandbookPolicy:
     def test_parse_rules(self):
         policy = HandbookPolicy(SAMPLE_HANDBOOK)
         assert len(policy.rules) > 0
-        must_not_rules = [r for r in policy.rules if r.rule_type == PolicyRuleType.MUST_NOT_DO]
+        must_not_rules = [
+            r for r in policy.rules if r.rule_type == PolicyRuleType.MUST_NOT_DO
+        ]
         assert len(must_not_rules) >= 2
 
     def test_parse_sections(self):
@@ -82,9 +82,7 @@ class TestComplianceGuard:
     def test_pre_action_allows_safe(self):
         policy = HandbookPolicy(SAMPLE_HANDBOOK)
         guard = ComplianceGuard(policy)
-        allowed, reason = guard.pre_action_check(
-            "read_file", {"path": "/tmp/test.txt"}
-        )
+        allowed, reason = guard.pre_action_check("read_file", {"path": "/tmp/test.txt"})
         assert allowed is True
 
     def test_post_action_check(self):

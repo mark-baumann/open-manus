@@ -1,9 +1,10 @@
 from app.tool.base import BaseTool
-from app.tool.tool_collection import ToolCollection
 
 # Leichtgewichtige Tools (keine externen Abhängigkeiten)
 from app.tool.create_chat_completion import CreateChatCompletion
 from app.tool.terminate import Terminate
+from app.tool.tool_collection import ToolCollection
+
 
 # Tools mit optionalen Abhängigkeiten
 try:
