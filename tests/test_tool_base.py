@@ -1,6 +1,5 @@
 """Unit-Tests für app/tool/base.py"""
 
-import sys
 import pytest
 
 # Direkt importieren, um schwere Abhängigkeiten in app/tool/__init__.py zu vermeiden

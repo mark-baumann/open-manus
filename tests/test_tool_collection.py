@@ -1,8 +1,6 @@
 """Unit-Tests für app/tool/tool_collection.py"""
 
-import sys
 import pytest
-from unittest.mock import AsyncMock, MagicMock
 
 # Direkt importieren, um schwere Abhängigkeiten in app/tool/__init__.py zu vermeiden
 from app.tool.base import BaseTool, ToolResult
@@ -11,6 +9,7 @@ from app.tool.tool_collection import ToolCollection
 
 class DummyTool(BaseTool):
     """Einfacher Dummy-Tool für Tests."""
+
     name: str = "dummy"
     description: str = "Ein Dummy-Tool"
 
@@ -20,6 +19,7 @@ class DummyTool(BaseTool):
 
 class FailingTool(BaseTool):
     """Tool das immer fehlschlägt."""
+
     name: str = "failing"
     description: str = "Ein fehlschlagendes Tool"
 

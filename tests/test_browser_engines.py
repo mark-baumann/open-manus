@@ -3,8 +3,8 @@ from types import SimpleNamespace
 import pytest
 
 from app.browser_engines import (
-    build_browser_config_kwargs,
     browser_use_launch_kwargs,
+    build_browser_config_kwargs,
     describe_engines,
     normalize_engine,
     resolve_engine_binary,

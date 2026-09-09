@@ -6,6 +6,7 @@ def pytest_collection_modifyitems(config, items):
     """Überspringt Sandbox-Tests wenn Docker fehlt."""
     try:
         import docker
+
         client = docker.from_env()
         client.ping()
     except Exception:

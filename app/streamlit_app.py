@@ -70,7 +70,9 @@ try:
     from app.agent.swe import SWEAgent
     from app.browser_engines import ENGINE_LABELS, SUPPORTED_ENGINES, describe_engines
     from app.config import config
-except Exception as exc:  # Startup-Fehler (z. B. fehlerhafte config.toml) sichtbar machen
+except (
+    Exception
+) as exc:  # Startup-Fehler (z. B. fehlerhafte config.toml) sichtbar machen
     AGENT_FRAMEWORK_ERROR = str(exc)
     config = None
 
@@ -90,32 +92,47 @@ st.set_page_config(
 # Verfügbare Agenten (reale Agent-Klassen aus app/agent)
 # ──────────────────────────────────────────────────────────────
 
-AGENT_TYPES = {
-    "GeneralAgent": {
-        "name": "General Agent",
-        "description": "Allzweck-Agent für verschiedene Aufgaben (Manus)",
-        "tools": ["python_execute", "browser_use", "str_replace_editor", "ask_human", "terminate"],
-        "agent_class": Manus,
-    },
-    "CodeAgent": {
-        "name": "Code Agent",
-        "description": "Spezialisiert auf Programmierung & Code-Generierung (SWE-Agent)",
-        "tools": ["bash", "str_replace_editor", "terminate"],
-        "agent_class": SWEAgent,
-    },
-    "DataAnalysisAgent": {
-        "name": "Datenanalyse-Agent",
-        "description": "Analysiert Daten und erstellt Visualisierungen",
-        "tools": ["python_execute", "visualization_preparation", "data_visualization", "terminate"],
-        "agent_class": DataAnalysis,
-    },
-    "BrowserAgent": {
-        "name": "Browser Agent",
-        "description": "Automatisiert Web-Interaktionen",
-        "tools": ["browser_use", "terminate"],
-        "agent_class": BrowserAgent,
-    },
-} if AGENT_FRAMEWORK_ERROR is None else {}
+AGENT_TYPES = (
+    {
+        "GeneralAgent": {
+            "name": "General Agent",
+            "description": "Allzweck-Agent für verschiedene Aufgaben (Manus)",
+            "tools": [
+                "python_execute",
+                "browser_use",
+                "str_replace_editor",
+                "ask_human",
+                "terminate",
+            ],
+            "agent_class": Manus,
+        },
+        "CodeAgent": {
+            "name": "Code Agent",
+            "description": "Spezialisiert auf Programmierung & Code-Generierung (SWE-Agent)",
+            "tools": ["bash", "str_replace_editor", "terminate"],
+            "agent_class": SWEAgent,
+        },
+        "DataAnalysisAgent": {
+            "name": "Datenanalyse-Agent",
+            "description": "Analysiert Daten und erstellt Visualisierungen",
+            "tools": [
+                "python_execute",
+                "visualization_preparation",
+                "data_visualization",
+                "terminate",
+            ],
+            "agent_class": DataAnalysis,
+        },
+        "BrowserAgent": {
+            "name": "Browser Agent",
+            "description": "Automatisiert Web-Interaktionen",
+            "tools": ["browser_use", "terminate"],
+            "agent_class": BrowserAgent,
+        },
+    }
+    if AGENT_FRAMEWORK_ERROR is None
+    else {}
+)
 
 
 def _is_llm_configured() -> bool:
@@ -155,24 +172,32 @@ def _messages_to_steps(messages: List) -> List[dict]:
         if msg.role == "assistant":
             if msg.tool_calls:
                 for call in msg.tool_calls:
-                    steps.append({
-                        "step": len(steps) + 1,
-                        "type": "tool_call",
-                        "tool": call.function.name,
-                        "content": f"Argumente: {call.function.arguments}",
-                        "result": None,
-                        "timestamp": datetime.now().isoformat(),
-                    })
+                    steps.append(
+                        {
+                            "step": len(steps) + 1,
+                            "type": "tool_call",
+                            "tool": call.function.name,
+                            "content": f"Argumente: {call.function.arguments}",
+                            "result": None,
+                            "timestamp": datetime.now().isoformat(),
+                        }
+                    )
             if msg.content:
-                steps.append({
-                    "step": len(steps) + 1,
-                    "type": "thinking",
-                    "content": msg.content,
-                    "timestamp": datetime.now().isoformat(),
-                })
+                steps.append(
+                    {
+                        "step": len(steps) + 1,
+                        "type": "thinking",
+                        "content": msg.content,
+                        "timestamp": datetime.now().isoformat(),
+                    }
+                )
         elif msg.role == "tool":
             for step in reversed(steps):
-                if step["type"] == "tool_call" and step["tool"] == msg.name and step["result"] is None:
+                if (
+                    step["type"] == "tool_call"
+                    and step["tool"] == msg.name
+                    and step["result"] is None
+                ):
                     step["result"] = msg.content
                     break
     if steps:
@@ -237,7 +262,9 @@ with st.sidebar:
     if LLM_CONFIGURED:
         default_llm = config.llm["default"]
         st.caption(f"Modell: **{default_llm.model}**")
-        st.caption(f"Provider: {default_llm.api_type or 'openai-kompatibel'} | Max Tokens: {default_llm.max_tokens}")
+        st.caption(
+            f"Provider: {default_llm.api_type or 'openai-kompatibel'} | Max Tokens: {default_llm.max_tokens}"
+        )
     else:
         st.caption("Kein Modell konfiguriert — siehe Hinweis oben.")
 
@@ -268,27 +295,39 @@ with st.sidebar:
     selected_engine = st.selectbox(
         "Engine",
         options=engine_options,
-        index=engine_options.index(configured_engine) if configured_engine in engine_options else 0,
+        index=engine_options.index(configured_engine)
+        if configured_engine in engine_options
+        else 0,
         format_func=lambda x: ENGINE_LABELS.get(x, x),
         help="browser-use 0.1.x nutzt Playwright-Chromium. Chrome/Edge hängen sich an ein System-Binary.",
     )
     os.environ["BROWSER_ENGINE"] = selected_engine
     headless_ui = st.checkbox(
         "Headless",
-        value=True if not os.environ.get("DISPLAY") else bool(
-            config.browser_config.headless if config is not None and config.browser_config else False
+        value=True
+        if not os.environ.get("DISPLAY")
+        else bool(
+            config.browser_config.headless
+            if config is not None and config.browser_config
+            else False
         ),
         help="Ohne DISPLAY (Docker/Server) immer Headless.",
     )
     os.environ["BROWSER_HEADLESS"] = "true" if headless_ui else "false"
-    st.caption("Firefox/WebKit: nicht unterstützt. Remote: BROWSER_CDP_URL / BROWSER_WSS_URL.")
+    st.caption(
+        "Firefox/WebKit: nicht unterstützt. Remote: BROWSER_CDP_URL / BROWSER_WSS_URL."
+    )
 
     st.divider()
 
     st.markdown("### 🔒 Sandbox")
     sandbox_config = config.sandbox if config is not None else None
     if sandbox_config is not None:
-        st.caption("✅ Aktiv" if sandbox_config.use_sandbox else "❌ Inaktiv (Tools laufen direkt im Container)")
+        st.caption(
+            "✅ Aktiv"
+            if sandbox_config.use_sandbox
+            else "❌ Inaktiv (Tools laufen direkt im Container)"
+        )
         if sandbox_config.use_sandbox:
             st.caption(f"🐳 Docker-Container: {sandbox_config.image}")
             st.caption(f"💾 Memory-Limit: {sandbox_config.memory_limit}")
@@ -300,19 +339,23 @@ with st.sidebar:
     mcp_servers = config.mcp_config.servers if config is not None else {}
     if mcp_servers:
         for server_id, server_cfg in mcp_servers.items():
-            st.caption(f"🔗 {server_id}: {server_cfg.type} ({server_cfg.url or server_cfg.command})")
+            st.caption(
+                f"🔗 {server_id}: {server_cfg.type} ({server_cfg.url or server_cfg.command})"
+            )
     else:
         st.caption("Keine MCP-Server in config/mcp.json konfiguriert.")
 
 # ── Hauptbereich ──────────────────────────────────────────────
 
-tab1, tab2, tab3, tab4, tab5 = st.tabs([
-    "🚀 Task ausführen",
-    "📋 Ergebnisse",
-    "📜 Verlauf",
-    "🌐 Browser",
-    "⚙️ System-Info",
-])
+tab1, tab2, tab3, tab4, tab5 = st.tabs(
+    [
+        "🚀 Task ausführen",
+        "📋 Ergebnisse",
+        "📜 Verlauf",
+        "🌐 Browser",
+        "⚙️ System-Info",
+    ]
+)
 
 # ── Tab 1: Task ausführen ─────────────────────────────────────
 
@@ -364,7 +407,9 @@ with tab1:
                 st.session_state.agent_error = str(exc)
 
         if st.session_state.get("agent_error"):
-            st.error(f"❌ Agent-Ausführung fehlgeschlagen: {st.session_state.agent_error}")
+            st.error(
+                f"❌ Agent-Ausführung fehlgeschlagen: {st.session_state.agent_error}"
+            )
         else:
             st.success("Agent-Ausführung erfolgreich beendet!")
 
@@ -386,10 +431,14 @@ with tab2:
 
         for step in steps:
             if step["type"] == "thinking":
-                with st.expander(f"💭 Schritt {step['step']}: Denkprozess", expanded=False):
+                with st.expander(
+                    f"💭 Schritt {step['step']}: Denkprozess", expanded=False
+                ):
                     st.text(step["content"])
             elif step["type"] == "tool_call":
-                with st.expander(f"🔧 Schritt {step['step']}: {step['tool']}", expanded=False):
+                with st.expander(
+                    f"🔧 Schritt {step['step']}: {step['tool']}", expanded=False
+                ):
                     col1, col2 = st.columns(2)
                     with col1:
                         st.markdown("**Aufruf:**")
@@ -403,27 +452,37 @@ with tab2:
 
         st.divider()
         st.markdown("### 📊 Ausführungs-Metadaten")
-        meta_df = pd.DataFrame([{
-            "Metrik": "Agent-Typ",
-            "Wert": AGENT_TYPES[st.session_state.agent_type]["name"],
-        }, {
-            "Metrik": "Modell",
-            "Wert": config.llm["default"].model if LLM_CONFIGURED else "N/A",
-        }, {
-            "Metrik": "Schritte",
-            "Wert": len(steps),
-        }, {
-            "Metrik": "Tool-Aufrufe",
-            "Wert": sum(1 for s in steps if s["type"] == "tool_call"),
-        }, {
-            "Metrik": "Sandbox",
-            "Wert": "Aktiv" if config.sandbox.use_sandbox else "Inaktiv",
-        }])
+        meta_df = pd.DataFrame(
+            [
+                {
+                    "Metrik": "Agent-Typ",
+                    "Wert": AGENT_TYPES[st.session_state.agent_type]["name"],
+                },
+                {
+                    "Metrik": "Modell",
+                    "Wert": config.llm["default"].model if LLM_CONFIGURED else "N/A",
+                },
+                {
+                    "Metrik": "Schritte",
+                    "Wert": len(steps),
+                },
+                {
+                    "Metrik": "Tool-Aufrufe",
+                    "Wert": sum(1 for s in steps if s["type"] == "tool_call"),
+                },
+                {
+                    "Metrik": "Sandbox",
+                    "Wert": "Aktiv" if config.sandbox.use_sandbox else "Inaktiv",
+                },
+            ]
+        )
         st.dataframe(meta_df, use_container_width=True, hide_index=True)
     elif st.session_state.get("agent_error"):
         st.error(f"❌ Letzter Lauf fehlgeschlagen: {st.session_state.agent_error}")
     else:
-        st.info("Führen Sie zuerst einen Task aus (Tab 1). Es werden ausschließlich echte Ausführungsergebnisse angezeigt.")
+        st.info(
+            "Führen Sie zuerst einen Task aus (Tab 1). Es werden ausschließlich echte Ausführungsergebnisse angezeigt."
+        )
 
 # ── Tab 3: Verlauf ───────────────────────────────────────────
 
@@ -443,7 +502,10 @@ with tab3:
             "status": "Erfolgreich",
         }
 
-        if not st.session_state.task_history or st.session_state.task_history[0]["task"] != current_entry["task"]:
+        if (
+            not st.session_state.task_history
+            or st.session_state.task_history[0]["task"] != current_entry["task"]
+        ):
             st.session_state.task_history.insert(0, current_entry)
 
     if st.session_state.task_history:
@@ -468,26 +530,39 @@ with tab4:
     chrome_path = None
     if config is not None and config.browser_config is not None:
         chrome_path = config.browser_config.chrome_instance_path
-    engines_df = pd.DataFrame([{
-        "Engine": info.id,
-        "Name": info.label,
-        "Unterstützt": "Ja" if info.supported else "Nein",
-        "Status": info.notes,
-        "Binary": info.binary_path or "—",
-    } for info in describe_engines(chrome_path)])
+    engines_df = pd.DataFrame(
+        [
+            {
+                "Engine": info.id,
+                "Name": info.label,
+                "Unterstützt": "Ja" if info.supported else "Nein",
+                "Status": info.notes,
+                "Binary": info.binary_path or "—",
+            }
+            for info in describe_engines(chrome_path)
+        ]
+    )
     st.dataframe(engines_df, use_container_width=True, hide_index=True)
 
     st.markdown("#### Aktive Auswahl")
-    st.json({
-        "engine": selected_engine,
-        "headless": headless_ui,
-        "cdp_url": os.environ.get("BROWSER_CDP_URL") or (
-            config.browser_config.cdp_url if config is not None and config.browser_config else None
-        ),
-        "wss_url": os.environ.get("BROWSER_WSS_URL") or (
-            config.browser_config.wss_url if config is not None and config.browser_config else None
-        ),
-    })
+    st.json(
+        {
+            "engine": selected_engine,
+            "headless": headless_ui,
+            "cdp_url": os.environ.get("BROWSER_CDP_URL")
+            or (
+                config.browser_config.cdp_url
+                if config is not None and config.browser_config
+                else None
+            ),
+            "wss_url": os.environ.get("BROWSER_WSS_URL")
+            or (
+                config.browser_config.wss_url
+                if config is not None and config.browser_config
+                else None
+            ),
+        }
+    )
 
     st.caption(
         "Env-Overrides: `BROWSER_ENGINE`, `BROWSER_HEADLESS`, `CHROME_INSTANCE_PATH`, "
@@ -503,47 +578,60 @@ with tab5:
 
     with col1:
         st.markdown("#### 🤖 Agent-Konfiguration")
-        st.json({
-            "agent_type": agent_type,
-            "agent_name": AGENT_TYPES[agent_type]["name"],
-            "tools": AGENT_TYPES[agent_type]["tools"],
-            "model": config.llm["default"].model if LLM_CONFIGURED else None,
-            "model_configured": LLM_CONFIGURED,
-            "temperature": temperature,
-            "max_steps": max_steps,
-        })
+        st.json(
+            {
+                "agent_type": agent_type,
+                "agent_name": AGENT_TYPES[agent_type]["name"],
+                "tools": AGENT_TYPES[agent_type]["tools"],
+                "model": config.llm["default"].model if LLM_CONFIGURED else None,
+                "model_configured": LLM_CONFIGURED,
+                "temperature": temperature,
+                "max_steps": max_steps,
+            }
+        )
 
     with col2:
         st.markdown("#### 🔒 Sandbox-Status")
-        st.json({
-            "sandbox_enabled": config.sandbox.use_sandbox,
-            "image": config.sandbox.image,
-            "memory_limit": config.sandbox.memory_limit,
-            "cpu_limit": config.sandbox.cpu_limit,
-            "timeout": config.sandbox.timeout,
-        })
+        st.json(
+            {
+                "sandbox_enabled": config.sandbox.use_sandbox,
+                "image": config.sandbox.image,
+                "memory_limit": config.sandbox.memory_limit,
+                "cpu_limit": config.sandbox.cpu_limit,
+                "timeout": config.sandbox.timeout,
+            }
+        )
 
     st.divider()
 
     st.markdown("#### 🌐 MCP-Server")
-    st.json({
-        "servers": {
-            server_id: {"type": cfg.type, "endpoint": cfg.url or cfg.command}
-            for server_id, cfg in config.mcp_config.servers.items()
+    st.json(
+        {
+            "servers": {
+                server_id: {"type": cfg.type, "endpoint": cfg.url or cfg.command}
+                for server_id, cfg in config.mcp_config.servers.items()
+            }
         }
-    })
+    )
 
     st.divider()
 
     st.markdown("#### 📦 Verfügbare Agent-Typen")
-    agents_df = pd.DataFrame([{
-        "Agent": info["name"],
-        "Beschreibung": info["description"],
-        "Tools": ", ".join(info["tools"]),
-    } for key, info in AGENT_TYPES.items()])
+    agents_df = pd.DataFrame(
+        [
+            {
+                "Agent": info["name"],
+                "Beschreibung": info["description"],
+                "Tools": ", ".join(info["tools"]),
+            }
+            for key, info in AGENT_TYPES.items()
+        ]
+    )
     st.dataframe(agents_df, use_container_width=True, hide_index=True)
 
 # ── Footer ────────────────────────────────────────────────────
 
 st.divider()
-st.caption(f"🤖 Open Manus v1.0 | Agent Framework | {datetime.now().strftime('%d.%m.%Y %H:%M')}")
+st.caption(
+    f"🤖 Open Manus v1.0 | Agent Framework | {datetime.now().strftime('%d.%m.%Y %H:%M')}"
+)

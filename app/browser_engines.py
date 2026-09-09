@@ -5,6 +5,7 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, Mapping, Optional, Sequence
 
+
 SUPPORTED_ENGINES = ("chromium", "chrome", "msedge")
 UNSUPPORTED_ENGINES = {
     "firefox": "browser-use 0.1.x steuert Playwright-Chromium; Firefox wird nicht unterstützt.",
@@ -73,7 +74,9 @@ def _first_existing(paths: Sequence[str]) -> Optional[str]:
     return None
 
 
-def resolve_engine_binary(engine: str, chrome_instance_path: Optional[str] = None) -> Optional[str]:
+def resolve_engine_binary(
+    engine: str, chrome_instance_path: Optional[str] = None
+) -> Optional[str]:
     if chrome_instance_path:
         return chrome_instance_path
     normalized = normalize_engine(engine)
@@ -95,7 +98,9 @@ def is_headless_default(env: Optional[Mapping[str, str]] = None) -> bool:
 def describe_engines(chrome_instance_path: Optional[str] = None) -> list[EngineInfo]:
     infos: list[EngineInfo] = []
     for engine_id in SUPPORTED_ENGINES:
-        binary = resolve_engine_binary(engine_id, chrome_instance_path if engine_id != "chromium" else None)
+        binary = resolve_engine_binary(
+            engine_id, chrome_instance_path if engine_id != "chromium" else None
+        )
         notes = "Gebündeltes Playwright-Chromium, kein System-Browser nötig."
         if engine_id in {"chrome", "msedge"}:
             notes = (
@@ -141,12 +146,12 @@ def build_browser_config_kwargs(
 ) -> dict[str, Any]:
     source = env if env is not None else os.environ
     engine = normalize_engine(
-        source.get("BROWSER_ENGINE")
-        or getattr(settings, "engine", None)
-        or "chromium"
+        source.get("BROWSER_ENGINE") or getattr(settings, "engine", None) or "chromium"
     )
     if engine in UNSUPPORTED_ENGINES:
-        raise ValueError(f"Browser-Engine '{engine}' wird nicht unterstützt. {UNSUPPORTED_ENGINES[engine]}")
+        raise ValueError(
+            f"Browser-Engine '{engine}' wird nicht unterstützt. {UNSUPPORTED_ENGINES[engine]}"
+        )
 
     headless_env = _truthy(source.get("BROWSER_HEADLESS"))
     if headless_env is not None:
@@ -205,7 +210,9 @@ def build_browser_config_kwargs(
     return kwargs
 
 
-def browser_use_launch_kwargs(settings: Any = None, env: Optional[Mapping[str, str]] = None) -> dict[str, Any]:
+def browser_use_launch_kwargs(
+    settings: Any = None, env: Optional[Mapping[str, str]] = None
+) -> dict[str, Any]:
     kwargs = build_browser_config_kwargs(settings, env)
     kwargs.pop("engine", None)
     return kwargs
