@@ -68,6 +68,7 @@ try:
     from app.agent.data_analysis import DataAnalysis
     from app.agent.manus import Manus
     from app.agent.swe import SWEAgent
+    from app.browser_engines import ENGINE_LABELS, SUPPORTED_ENGINES, describe_engines
     from app.config import config
 except Exception as exc:  # Startup-Fehler (z. B. fehlerhafte config.toml) sichtbar machen
     AGENT_FRAMEWORK_ERROR = str(exc)
@@ -259,6 +260,31 @@ with st.sidebar:
 
     st.divider()
 
+    st.markdown("### 🌐 Browser-Engine")
+    configured_engine = "chromium"
+    if config is not None and config.browser_config is not None:
+        configured_engine = config.browser_config.engine or "chromium"
+    engine_options = list(SUPPORTED_ENGINES)
+    selected_engine = st.selectbox(
+        "Engine",
+        options=engine_options,
+        index=engine_options.index(configured_engine) if configured_engine in engine_options else 0,
+        format_func=lambda x: ENGINE_LABELS.get(x, x),
+        help="browser-use 0.1.x nutzt Playwright-Chromium. Chrome/Edge hängen sich an ein System-Binary.",
+    )
+    os.environ["BROWSER_ENGINE"] = selected_engine
+    headless_ui = st.checkbox(
+        "Headless",
+        value=True if not os.environ.get("DISPLAY") else bool(
+            config.browser_config.headless if config is not None and config.browser_config else False
+        ),
+        help="Ohne DISPLAY (Docker/Server) immer Headless.",
+    )
+    os.environ["BROWSER_HEADLESS"] = "true" if headless_ui else "false"
+    st.caption("Firefox/WebKit: nicht unterstützt. Remote: BROWSER_CDP_URL / BROWSER_WSS_URL.")
+
+    st.divider()
+
     st.markdown("### 🔒 Sandbox")
     sandbox_config = config.sandbox if config is not None else None
     if sandbox_config is not None:
@@ -280,10 +306,11 @@ with st.sidebar:
 
 # ── Hauptbereich ──────────────────────────────────────────────
 
-tab1, tab2, tab3, tab4 = st.tabs([
+tab1, tab2, tab3, tab4, tab5 = st.tabs([
     "🚀 Task ausführen",
     "📋 Ergebnisse",
     "📜 Verlauf",
+    "🌐 Browser",
     "⚙️ System-Info",
 ])
 
@@ -429,9 +456,47 @@ with tab3:
     else:
         st.info("Noch keine Tasks im Verlauf.")
 
-# ── Tab 4: System-Info ────────────────────────────────────────
+# ── Tab 4: Browser-Engines ────────────────────────────────────
 
 with tab4:
+    st.markdown("### 🌐 Unterstützte Browser-Engines")
+    st.markdown(
+        "Open Manus steuert den Browser über **browser-use 0.1.x** (Playwright). "
+        "Wählbar sind Chromium, Google Chrome und Microsoft Edge. "
+        "Firefox und WebKit sind in dieser Version nicht angebunden."
+    )
+    chrome_path = None
+    if config is not None and config.browser_config is not None:
+        chrome_path = config.browser_config.chrome_instance_path
+    engines_df = pd.DataFrame([{
+        "Engine": info.id,
+        "Name": info.label,
+        "Unterstützt": "Ja" if info.supported else "Nein",
+        "Status": info.notes,
+        "Binary": info.binary_path or "—",
+    } for info in describe_engines(chrome_path)])
+    st.dataframe(engines_df, use_container_width=True, hide_index=True)
+
+    st.markdown("#### Aktive Auswahl")
+    st.json({
+        "engine": selected_engine,
+        "headless": headless_ui,
+        "cdp_url": os.environ.get("BROWSER_CDP_URL") or (
+            config.browser_config.cdp_url if config is not None and config.browser_config else None
+        ),
+        "wss_url": os.environ.get("BROWSER_WSS_URL") or (
+            config.browser_config.wss_url if config is not None and config.browser_config else None
+        ),
+    })
+
+    st.caption(
+        "Env-Overrides: `BROWSER_ENGINE`, `BROWSER_HEADLESS`, `CHROME_INSTANCE_PATH`, "
+        "`BROWSER_CDP_URL`, `BROWSER_WSS_URL`."
+    )
+
+# ── Tab 5: System-Info ────────────────────────────────────────
+
+with tab5:
     st.markdown("### ⚙️ System-Informationen")
 
     col1, col2 = st.columns(2)

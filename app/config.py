@@ -67,6 +67,10 @@ class RunflowSettings(BaseModel):
 
 
 class BrowserSettings(BaseModel):
+    engine: str = Field(
+        "chromium",
+        description="Browser engine: chromium, chrome, or msedge",
+    )
     headless: bool = Field(False, description="Whether to run browser in headless mode")
     disable_security: bool = Field(
         True, description="Disable browser security features"
@@ -276,9 +280,12 @@ class Config:
             if proxy_settings:
                 valid_browser_params["proxy"] = proxy_settings
 
-            # only create BrowserSettings when there are valid parameters.
             if valid_browser_params:
                 browser_settings = BrowserSettings(**valid_browser_params)
+            else:
+                browser_settings = BrowserSettings()
+        else:
+            browser_settings = BrowserSettings()
 
         search_config = raw_config.get("search", {})
         search_settings = None

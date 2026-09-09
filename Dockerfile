@@ -17,6 +17,9 @@ COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 # Streamlit separat installieren (vermeidet Versions-Konflikte mit gepinnten Deps)
 RUN pip install --no-cache-dir "streamlit>=1.28.0"
+RUN playwright install --with-deps chromium
+ENV BROWSER_ENGINE=chromium
+ENV BROWSER_HEADLESS=true
 
 # App-Code
 COPY . .
