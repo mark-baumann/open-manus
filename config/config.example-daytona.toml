@@ -106,7 +106,7 @@ daytona_api_key = ""
 
 # MCP (Model Context Protocol) configuration
 [mcp]
-server_reference = "app.mcp.server" # default server module reference
+server_reference = "app.mcp_server.server" # default server module reference
 
 # Optional Runflow configuration
 # Your can add additional agents into run-flow workflow to solve different-type tasks.
