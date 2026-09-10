@@ -11,6 +11,7 @@ statt einen erfundenen Ablauf vorzutäuschen.
 
 import asyncio
 import os
+import re
 import sys
 from datetime import datetime
 from pathlib import Path
@@ -69,12 +70,95 @@ try:
     from app.agent.manus import Manus
     from app.agent.swe import SWEAgent
     from app.browser_engines import ENGINE_LABELS, SUPPORTED_ENGINES, describe_engines
-    from app.config import config
+    from app.config import LLMSettings, config
 except (
     Exception
 ) as exc:  # Startup-Fehler (z. B. fehlerhafte config.toml) sichtbar machen
     AGENT_FRAMEWORK_ERROR = str(exc)
     config = None
+
+
+# ──────────────────────────────────────────────────────────────
+# LLM über die GUI verbinden (statt nur config.toml / Env-Variablen)
+# ──────────────────────────────────────────────────────────────
+
+LLM_PROVIDER_PRESETS = {
+    "Anthropic": {
+        "api_type": "anthropic",
+        "base_url": "https://api.anthropic.com/v1/",
+        "model": "claude-3-7-sonnet-20250219",
+    },
+    "OpenAI": {
+        "api_type": "openai",
+        "base_url": "https://api.openai.com/v1",
+        "model": "gpt-4o",
+    },
+    "Azure OpenAI": {
+        "api_type": "azure",
+        "base_url": "",
+        "model": "",
+    },
+    "Ollama (lokal)": {
+        "api_type": "ollama",
+        "base_url": "http://localhost:11434/v1",
+        "model": "llama3.2",
+    },
+    "Sonstiger OpenAI-kompatibler Anbieter": {
+        "api_type": "openai",
+        "base_url": "",
+        "model": "",
+    },
+}
+
+
+def _config_toml_path() -> Path:
+    return PROJECT_ROOT / "config" / "config.toml"
+
+
+def _render_llm_toml_block(settings: dict) -> str:
+    lines = ["[llm]"]
+    for key in (
+        "model",
+        "base_url",
+        "api_key",
+        "max_tokens",
+        "temperature",
+        "api_type",
+        "api_version",
+    ):
+        value = settings[key]
+        if isinstance(value, str):
+            lines.append(f'{key} = "{value}"')
+        else:
+            lines.append(f"{key} = {value}")
+    return "\n".join(lines) + "\n"
+
+
+def _save_llm_settings(settings: dict) -> None:
+    """Schreibt die LLM-Zugangsdaten aus der GUI in config/config.toml.
+
+    Ersetzt ausschließlich den [llm]-Block, alle anderen Abschnitte (Browser,
+    Sandbox, MCP, ...) bleiben unverändert erhalten.
+    """
+    config_path = _config_toml_path()
+    new_block = _render_llm_toml_block(settings)
+
+    if config_path.exists():
+        original = config_path.read_text()
+        pattern = re.compile(r"^\[llm\]\s*\n(?:(?!^\[).*\n?)*", re.MULTILINE)
+        if pattern.search(original):
+            updated = pattern.sub(new_block, original, count=1)
+        else:
+            updated = new_block + "\n" + original
+    else:
+        config_path.parent.mkdir(parents=True, exist_ok=True)
+        updated = new_block
+
+    config_path.write_text(updated)
+
+    # Sofort im laufenden Prozess übernehmen, ohne Neustart der App.
+    if config is not None:
+        config.update_llm_settings("default", LLMSettings(**settings))
 
 
 # ──────────────────────────────────────────────────────────────
@@ -266,7 +350,95 @@ with st.sidebar:
             f"Provider: {default_llm.api_type or 'openai-kompatibel'} | Max Tokens: {default_llm.max_tokens}"
         )
     else:
-        st.caption("Kein Modell konfiguriert — siehe Hinweis oben.")
+        st.caption("Kein Modell konfiguriert.")
+
+    with st.expander(
+        "🔑 LLM verbinden" if not LLM_CONFIGURED else "🔑 LLM-Zugang bearbeiten",
+        expanded=not LLM_CONFIGURED,
+    ):
+        current = config.llm.get("default") if LLM_CONFIGURED else None
+        provider_names = list(LLM_PROVIDER_PRESETS.keys())
+        default_provider_index = 0
+        if current is not None:
+            for idx, preset in enumerate(LLM_PROVIDER_PRESETS.values()):
+                if preset["api_type"] == current.api_type:
+                    default_provider_index = idx
+                    break
+
+        with st.form("llm_connect_form", clear_on_submit=False):
+            provider = st.selectbox(
+                "Anbieter",
+                options=provider_names,
+                index=default_provider_index,
+                help="Voreinstellungen für Modell und Endpunkt-URL je Anbieter.",
+            )
+            preset = LLM_PROVIDER_PRESETS[provider]
+
+            model = st.text_input(
+                "Modell",
+                value=current.model if current else preset["model"],
+                placeholder="z. B. claude-3-7-sonnet-20250219",
+            )
+            base_url = st.text_input(
+                "Base URL",
+                value=current.base_url if current else preset["base_url"],
+                placeholder="z. B. https://api.anthropic.com/v1/",
+            )
+            api_key = st.text_input(
+                "API-Key",
+                value="",
+                type="password",
+                placeholder="sk-..."
+                if not current
+                else "Leer lassen, um den bestehenden Key zu behalten",
+            )
+            col_a, col_b = st.columns(2)
+            with col_a:
+                llm_max_tokens = st.number_input(
+                    "Max Tokens",
+                    min_value=1,
+                    value=current.max_tokens if current else 8192,
+                    step=256,
+                )
+            with col_b:
+                llm_temperature = st.number_input(
+                    "Temperature",
+                    min_value=0.0,
+                    max_value=2.0,
+                    value=current.temperature if current else 0.0,
+                    step=0.1,
+                )
+            api_version = ""
+            if preset["api_type"] == "azure":
+                api_version = st.text_input(
+                    "API-Version (Azure)",
+                    value=current.api_version if current else "2024-08-01-preview",
+                )
+
+            save_llm = st.form_submit_button(
+                "💾 Speichern & verbinden", use_container_width=True
+            )
+
+        if save_llm:
+            resolved_api_key = api_key.strip() or (current.api_key if current else "")
+            if not model.strip() or not base_url.strip() or not resolved_api_key:
+                st.error(
+                    "Bitte Modell, Base URL und API-Key ausfüllen, um das LLM zu verbinden."
+                )
+            else:
+                _save_llm_settings(
+                    {
+                        "model": model.strip(),
+                        "base_url": base_url.strip(),
+                        "api_key": resolved_api_key,
+                        "max_tokens": int(llm_max_tokens),
+                        "temperature": float(llm_temperature),
+                        "api_type": preset["api_type"],
+                        "api_version": api_version,
+                    }
+                )
+                st.success("LLM-Zugang gespeichert. Die App wird neu geladen …")
+                st.rerun()
 
     temperature = st.slider(
         "Temperature",

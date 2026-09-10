@@ -338,6 +338,14 @@ class Config:
     def llm(self) -> Dict[str, LLMSettings]:
         return self._config.llm
 
+    def update_llm_settings(self, name: str, settings: LLMSettings) -> None:
+        """Update an LLM entry (e.g. "default") in the running configuration.
+
+        Lets callers (such as the Streamlit UI) connect an LLM at runtime
+        without requiring a process restart.
+        """
+        self._config.llm[name] = settings
+
     @property
     def sandbox(self) -> SandboxSettings:
         return self._config.sandbox
